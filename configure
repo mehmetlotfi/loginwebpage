@@ -1,0 +1,183 @@
+#!/bin/sh
+
+#
+#  loginwebpage - Login Page on web
+#  Copyright (C) 2026  Mehmet Lotfi
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+
+# configure - checks that this system can build loginserver.
+#
+# Plain POSIX sh: runs on Linux and on the BSDs (FreeBSD, OpenBSD, NetBSD,
+# DragonFly). It does not modify anything; if a requirement is missing it
+# tells you how to install it with this system's package manager.
+#
+# Usage:  ./configure            (CC=clang ./configure  to test another compiler)
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0
+fi
+
+CFLAGS_TEST="-std=gnu99 -pthread"
+missing=""
+tmp=""
+
+cleanup() { [ -n "$tmp" ] && rm -rf "$tmp"; }
+trap cleanup EXIT
+trap 'cleanup; exit 130' INT TERM
+
+have() { command -v "$1" >/dev/null 2>&1; }
+ok()   { printf '  %-34s %s\n' "$1" "yes${2:+ ($2)}"; }
+fail() { printf '  %-34s %s\n' "$1" "NO"; missing="$missing $2"; }
+
+OS=$(uname -s 2>/dev/null || echo unknown)
+printf 'Checking build requirements for loginserver on %s...\n\n' "$OS"
+
+# ---- scratch directory ----------------------------------------------------
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/lsconf.XXXXXX" 2>/dev/null) || {
+    tmp="./.conftest.$$"; mkdir "$tmp" || { echo "cannot create a temporary directory"; exit 1; }
+}
+
+# ---- C compiler -----------------------------------------------------------
+CC_FOUND=""
+for c in "${CC:-}" cc gcc clang tcc; do
+    [ -n "$c" ] && have "$c" && { CC_FOUND="$c"; break; }
+done
+if [ -n "$CC_FOUND" ]; then
+    ok "C compiler" "$CC_FOUND: $($CC_FOUND --version 2>/dev/null | head -n 1)"
+else
+    fail "C compiler" compiler
+fi
+
+# ---- make -----------------------------------------------------------------
+MAKE_FOUND=""
+for m in make gmake bmake; do
+    have "$m" && { MAKE_FOUND="$m"; break; }
+done
+if [ -n "$MAKE_FOUND" ]; then ok "make" "$MAKE_FOUND"; else fail "make" make; fi
+
+# ---- headers and functions (needs a working compiler) ---------------------
+if [ -n "$CC_FOUND" ]; then
+    # a trivial program first: tells "no working compiler" from "no headers"
+    printf 'int main(void){return 0;}\n' > "$tmp/t0.c"
+    if $CC_FOUND $CFLAGS_TEST -o "$tmp/t0" "$tmp/t0.c" >"$tmp/log" 2>&1 && "$tmp/t0"; then
+        ok "compiler can build programs"
+        CC_WORKS=1
+    else
+        fail "compiler can build programs" libc-dev
+        sed 's/^/      /' "$tmp/log" | head -n 5
+        CC_WORKS=0
+    fi
+
+    if [ "$CC_WORKS" = 1 ]; then
+        for h in sys/socket.h netinet/in.h arpa/inet.h netdb.h net/if.h ifaddrs.h \
+                 poll.h pthread.h signal.h fcntl.h unistd.h strings.h; do
+            printf '#include <sys/types.h>\n#include <sys/socket.h>\n#include <%s>\nint main(void){return 0;}\n' "$h" > "$tmp/h.c"
+            if $CC_FOUND $CFLAGS_TEST -o "$tmp/h" "$tmp/h.c" >/dev/null 2>&1; then
+                ok "header <$h>"
+            else
+                fail "header <$h>" libc-dev
+            fi
+        done
+
+        cat > "$tmp/f.c" <<'CEOF'
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <net/if.h>
+#include <ifaddrs.h>
+#include <poll.h>
+#include <pthread.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+static void *w(void *a) { return a; }
+int main(void) {
+    struct ifaddrs *ifa = NULL; pthread_t t; char *line = NULL; size_t cap = 0;
+    struct pollfd p = { 0, 0, 0 }; sigset_t s;
+    if (getifaddrs(&ifa) == 0) freeifaddrs(ifa);
+    if (pthread_create(&t, NULL, w, NULL) == 0) pthread_join(t, NULL);
+    sigemptyset(&s); poll(&p, 0, 0);
+    (void)getline(&line, &cap, stdin); free(line);
+    return 0;
+}
+CEOF
+        if $CC_FOUND $CFLAGS_TEST -o "$tmp/f" "$tmp/f.c" >"$tmp/log" 2>&1; then
+            ok "getifaddrs/poll/pthread/getline" "link OK"
+        else
+            fail "getifaddrs/poll/pthread/getline" libc-dev
+            sed 's/^/      /' "$tmp/log" | head -n 8
+        fi
+    fi
+fi
+
+# ---- result ---------------------------------------------------------------
+echo
+if [ -z "$missing" ]; then
+    echo "All requirements are satisfied."
+    echo
+    echo "Next steps:"
+    echo "    ${MAKE_FOUND:-make}          # build ./loginserver"
+    echo "    ./loginserver users.db.example"
+    exit 0
+fi
+
+# ---- how to install what is missing --------------------------------------
+if [ "$(id -u 2>/dev/null)" = "0" ]; then SU=""
+elif have sudo; then SU="sudo "
+elif have doas; then SU="doas "
+else SU="su -c "; fi
+
+want_compiler=0; want_make=0
+for m in $missing; do
+    case "$m" in compiler|libc-dev) want_compiler=1 ;; make) want_make=1 ;; esac
+done
+
+echo "Some requirements are missing. Install them with your package manager:"
+echo
+
+if   have apt-get;      then echo "    ${SU}apt-get update && ${SU}apt-get install build-essential"
+elif have dnf;          then echo "    ${SU}dnf install gcc make glibc-devel"
+elif have yum;          then echo "    ${SU}yum install gcc make glibc-devel"
+elif have zypper;       then echo "    ${SU}zypper install gcc make glibc-devel"
+elif have pacman;       then echo "    ${SU}pacman -S --needed base-devel"
+elif have apk;          then echo "    ${SU}apk add build-base"
+elif have xbps-install; then echo "    ${SU}xbps-install -S base-devel"
+elif have emerge;       then echo "    ${SU}emerge --ask sys-devel/gcc sys-devel/make sys-libs/glibc"
+elif have nix-env;      then echo "    nix-env -iA nixpkgs.gcc nixpkgs.gnumake"
+elif have eopkg;        then echo "    ${SU}eopkg install -c system.devel"
+else
+    case "$OS" in
+    FreeBSD|DragonFly)
+        [ $want_compiler = 1 ] && echo "    ${SU}pkg install gcc      # or: clang is part of the base system"
+        [ $want_make = 1 ]     && echo "    ${SU}pkg install gmake    # BSD make works too; it is in the base system" ;;
+    OpenBSD)
+        [ $want_compiler = 1 ] && echo "    ${SU}pkg_add gcc          # clang is normally in the base system (sets: comp*.tgz)"
+        [ $want_make = 1 ]     && echo "    ${SU}pkg_add gmake        # BSD make is in the base system" ;;
+    NetBSD)
+        [ $want_compiler = 1 ] && echo "    ${SU}pkgin install gcc12  # gcc is normally in the base system (comp.tgz set)"
+        [ $want_make = 1 ]     && echo "    ${SU}pkgin install gmake" ;;
+    Darwin)
+        echo "    xcode-select --install" ;;
+    *)
+        echo "    install a C compiler (gcc or clang), make, and the C library headers" ;;
+    esac
+fi
+
+echo
+echo "Then run ./configure again."
+exit 1
