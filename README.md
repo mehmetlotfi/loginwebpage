@@ -3,6 +3,8 @@
   <p>A lightweight, multithreaded HTTP login page server written in C.</p>
 </div>
 
+[برای دیدن توضیحات به زبان فارسی اینجا را کلیک کنید](README-fa.md)
+
 `loginwebpage` is a small web server that serves a login page and checks submitted credentials against a local user database. It is intended for development, demonstrations, and controlled testing of login flows and related web-client behavior.
 
 ## Features
