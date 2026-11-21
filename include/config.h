@@ -19,8 +19,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define APP_NAME    "loginserver"
-#define APP_VERSION "1.0.0"
+#define APP_NAME    "loginwebpage"
+#define APP_VERSION "1.1.0"
 
 #ifndef SERVER_PORT
 #define SERVER_PORT 8080
@@ -49,6 +49,13 @@
 #define MAX_PATH_LEN    256
 
 #define MAX_USERNAME_LEN 64
+#define MAX_PASSWORD_LEN 1024
 #define MAX_DB_LINE_LEN  1024
+
+#define MAX_REPORTED_ERRORS 50
+
+#define DIAG_WINDOW 100
+
+#define SHUTDOWN_GRACE_MS 2000
 
 #endif

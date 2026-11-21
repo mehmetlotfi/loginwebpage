@@ -50,7 +50,7 @@ void connection_handle (void * ctx_ , conn_t * conn)
 	http_rr_t rr = http_read_request (fd , &req);
 	if (rr == HTTP_RR_CLOSED || rr == HTTP_RR_IO_ERROR)
 	{
-		close (fd);
+		sb_free (&body);
 		return;
 	}
 	int head_only = 0;
@@ -85,5 +85,5 @@ void connection_handle (void * ctx_ , conn_t * conn)
 	log_info ("%s \"%s %s\" %d%s%s" , ip , method , path , rep.status ,
 	rep.note [0] ? " " : "" , rep.note);
 	sb_free (&body);
-	sock_lingering_close (fd);
+	sock_finish (fd);
 }

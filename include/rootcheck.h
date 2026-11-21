@@ -19,6 +19,6 @@
 #ifndef ROOTCHECK_H
 #define ROOTCHECK_H
 
-int rootcheck_needs_sudo (int port , int argc , char ** argv);
+int rootcheck_needs_sudo (int port , const char * prog , const char * file);
 
 #endif

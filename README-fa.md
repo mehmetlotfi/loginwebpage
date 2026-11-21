@@ -2,20 +2,21 @@
 [Click here to view the documentation in English](README.md)
 
 <div dir="rtl" align="right">
+
 سرور سبک و چندریسمانی صفحه ورود تحت وب که با زبان C نوشته شده است.
 
 `loginwebpage` یک وب‌سرور کوچک است که صفحه ورود را نمایش می‌دهد و اطلاعات ارسال‌شده را با پایگاه داده محلی کاربران بررسی می‌کند. این پروژه برای توسعه، نمایش عملکرد، و آزمایش کنترل‌شده فرایند ورود و رفتار کلاینت‌های وب مناسب است.
 
 ## قابلیت‌ها
 
-- نمایش صفحه ورود و پاسخ‌های موفقیت یا خطا.
-- بارگذاری حساب‌های کاربری از یک فایل متنی محلی.
-- بررسی رمز عبور با استفاده از هش SHA-256.
-- پردازش چندریسمانی اتصال‌ها.
-- تجزیه درخواست‌های HTTP و اعتبارسنجی ورودی‌ها.
-- امکان تغییر پورت شنود هنگام کامپایل؛ پورت پیش‌فرض `8080` است.
-- اسکریپت `configure` برای بررسی پیش‌نیازهای ساخت.
-- هدف‌های `Makefile` برای کامپایل، نصب، حذف نصب و پاک‌سازی فایل‌های تولیدشده.
+- صفحه‌های ورود، موفقیت و خطا به دو زبان فارسی و انگلیسی، با تم روشن و تیره.
+- بارگذاری حساب‌ها از یک فایل متنی محلی و بررسی رمز با هش SHA-256.
+- چندریسمانی: مجموعه‌ای از threadهای کارگر با صف محدود (در فشار زیاد پاسخ `503` می‌دهد و هرگز گیر نمی‌کند).
+- خروج امن با `Ctrl+C` یا `SIGTERM`: پذیرش اتصال جدید متوقف می‌شود، درخواست‌های در حال انجام تا ۲ ثانیه فرصت پایان دارند، همه سوکت‌ها بسته، همه threadها join و همه حافظه آزاد می‌شود. `Ctrl+C` دوم فوراً خارج می‌شود.
+- اگر فایل کاربران ایراد داشته باشد، روی `stderr` و به سبک `gcc` گزارش می‌شود (فایل:خط:ستون، خط معیوب، نشانگر `^~~~` و یک نمونه خط درست).
+- سوییچ‌های `--add-user` و `--remove-user` برای مدیریت فایل کاربران؛ دیگر اسکریپت کمکی لازم نیست.
+- `--help` راهنمای کامل را با قالب استاندارد man page داخل `less` نشان می‌دهد.
+- `./configure` پیش‌نیازها را بررسی می‌کند، دستور نصب موارد ناقص را می‌گوید و `Makefile` را می‌نویسد.
 
 ## کاربرد موردنظر
 
@@ -26,71 +27,39 @@
 ## پیش‌نیازها
 
 - کامپایلر C مانند GCC یا Clang.
-- ابزار `make`؛ مانند GNU make یا نسخه سازگار BSD.
-- سرآیندهای استاندارد سیستم‌های سازگار با POSIX و پشتیبانی از threadها.
-- پوسته POSIX برای اجرای اسکریپت‌های `configure` و ساخت کاربر.
+- ابزار `make` (GNU make یا make سیستم‌های BSD)، `sed` و یک پوسته POSIX برای `./configure`.
+- سرآیندهای استاندارد POSIX و پشتیبانی از thread.
+- اختیاری: `less` برای نمایش صفحه‌به‌صفحه `--help`.
 
-این پروژه برای Linux و خانواده سیستم‌عامل‌های BSD طراحی شده است. در Debian و Ubuntu می‌توانید ابزارهای لازم را با دستورهای زیر نصب کنید:
+سیستم‌های پشتیبانی‌شده: Linux، FreeBSD، OpenBSD، NetBSD، DragonFly BSD و Termux (اندروید). اگر چیزی نصب نباشد، `./configure` دستور دقیق نصب را بر اساس package manager سیستم شما چاپ می‌کند، مثلاً:
 
 </div>
 
 <div dir="ltr" align="left">
 
 ```sh
-sudo apt update
-sudo apt install build-essential
+sudo apt install build-essential        # Debian/Ubuntu
+sudo dnf install gcc make glibc-devel   # Fedora
+sudo pacman -S --needed base-devel      # Arch
+pkg install clang make                  # Termux
 ```
 
 </div>
 
-<div dir="rtl" align="right">
-
-در Fedora:
-
-</div>
+## کلون کردن مخزن
 
 <div dir="ltr" align="left">
 
-```sh
-sudo dnf install gcc make glibc-devel
-```
-
-</div>
-
-<div dir="rtl" align="right">
-
-در Arch Linux:
-
-</div>
-
-<div dir="ltr" align="left">
-
-```sh
-sudo pacman -S --needed base-devel
-```
-
-</div>
-
-<div dir="rtl" align="right">
-
-## دریافت پروژه
-
-</div>
-
-<div dir="ltr" align="left">
-
-```sh
+```bash
 git clone https://github.com/mehmetlotfi/loginwebpage.git
-cd loginwebpage
-```
 
+cd loginwebpage/
+```
 </div>
 
 <div dir="rtl" align="right">
 
-## بررسی پیش‌نیازها و کامپایل
-
-ابتدا پیش‌نیازهای ساخت را بررسی کنید:
+## کامپایل
 
 </div>
 
@@ -98,19 +67,6 @@ cd loginwebpage
 
 ```sh
 ./configure
-```
-
-</div>
-
-<div dir="rtl" align="right">
-
-اگر بررسی با موفقیت انجام شد، برنامه را کامپایل کنید:
-
-</div>
-
-<div dir="ltr" align="left">
-
-```sh
 make
 ```
 
@@ -118,67 +74,17 @@ make
 
 <div dir="rtl" align="right">
 
-فایل اجرایی با نام `loginwebpage` ساخته می‌شود و فایل‌های میانی کامپایل در پوشه `build/` قرار می‌گیرند.
+`./configure` فقط **وقتی همه بررسی‌ها موفق باشند** فایل `Makefile` را می‌سازد؛ اگر مورد ناقصی باشد روش نصب آن را توضیح می‌دهد و هیچ فایلی نمی‌سازد. متن Makefile داخل خود اسکریپت `configure` نگه‌داری می‌شود (فایل `Makefile.in` وجود ندارد).
 
-برای حذف فایل اجرایی و فایل‌های تولیدشده هنگام کامپایل:
+- فایل‌های object در پوشه `build/` ساخته می‌شوند و هرگز `src/` و `include/` را آلوده نمی‌کنند.
+- پس از تغییر یک فایل، `make` فقط بخش‌های وابسته به آن را دوباره کامپایل می‌کند.
+- `make clean` پوشه `build/` و فایل اجرایی `loginwebpage` را حذف می‌کند؛ `make distclean` علاوه بر آن `Makefile` را هم حذف می‌کند.
+- اگر فایل `.c` اضافه کردید یا خط `#include` را تغییر دادید، `./configure` را دوباره اجرا کنید تا قواعد وابستگی بازسازی شوند.
+- `sudo make install` برنامه و man page را در `/usr/local` نصب می‌کند (با `./configure --prefix=/usr` قابل تغییر است)؛ `sudo make uninstall` آن‌ها را حذف می‌کند.
 
-</div>
+## مدیریت کاربران
 
-<div dir="ltr" align="left">
-
-```sh
-make clean
-```
-
-</div>
-
-<div dir="rtl" align="right">
-
-برای نصب فایل اجرایی در مسیر `/usr/local/bin`:
-
-</div>
-
-<div dir="ltr" align="left">
-
-```sh
-sudo make install
-```
-
-</div>
-
-<div dir="rtl" align="right">
-
-برای حذف نصب:
-
-</div>
-
-<div dir="ltr" align="left">
-
-```sh
-sudo make uninstall
-```
-
-</div>
-
-<div dir="rtl" align="right">
-
-در صورت نیاز می‌توانید مسیر نصب را تغییر دهید؛ برای نمونه:
-
-</div>
-
-<div dir="ltr" align="left">
-
-```sh
-sudo make install PREFIX=/usr
-```
-
-</div>
-
-<div dir="rtl" align="right">
-
-## ساخت پایگاه داده کاربران آزمایشی
-
-سرور فایلی می‌پذیرد که در هر خط آن یک کاربر با قالب زیر تعریف شده باشد:
+فایل کاربران در هر خط یک حساب دارد:
 
 </div>
 
@@ -192,53 +98,65 @@ username:sha256-hex-of-password;
 
 <div dir="rtl" align="right">
 
-هش رمز عبور باید دقیقاً ۶۴ رقم هگزادسیمال داشته باشد. یک فایل نمونه با نام `users.db.example` در پروژه قرار دارد. آن را به فایل کاری جداگانه‌ای کپی کنید:
+فایل را با خود برنامه بسازید و ویرایش کنید (رمز دو بار پرسیده می‌شود و نمایش داده نمی‌شود):
 
 </div>
 
 <div dir="ltr" align="left">
 
 ```sh
-cp users.db.example users.db
+./loginwebpage --add-user Ali users.db      # فرم کوتاه: -a Ali users.db
+./loginwebpage --remove-user Ali users.db   # فرم کوتاه: -r Ali users.db
 ```
 
 </div>
 
 <div dir="rtl" align="right">
 
-برای افزودن یک کاربر آزمایشی، از اسکریپت کمکی استفاده کنید. اسکریپت رمز عبور را بدون نمایش روی صفحه دریافت می‌کند و رکورد کاربر را به فایل اضافه می‌کند:
+اگر فایل وجود نداشته باشد ساخته می‌شود (با دسترسی `0600`). اگر فایل ایراد داشته باشد این دستورها به آن دست نمی‌زنند. برای اسکریپت‌ها، وقتی ورودی استاندارد ترمینال نباشد رمز از آن خوانده می‌شود:
 
 </div>
 
 <div dir="ltr" align="left">
 
 ```sh
-sh tools/mkuser.sh testuser >> users.db
+printf '%s\n' 'test-password' | ./loginwebpage -a testuser users.db
 ```
 
 </div>
 
 <div dir="rtl" align="right">
 
-امکان افزودن کاربر با وارد کردن رمز عبور به‌عنوان آرگومان هم وجود دارد، اما این روش توصیه نمی‌شود؛ زیرا ممکن است رمز در تاریخچه پوسته یا فهرست فرایندها قابل مشاهده باشد:
+بعد از تغییر فایل، سرور را دوباره اجرا کنید. فایل نمونه `users.db.example` همراه پروژه است (کاربر `Ali` با رمز `1234`).
+
+### ایراد در فایل کاربران
+
+هنگام اجرا، کل فایل بررسی می‌شود و هر ایرادی تفسیر و گزارش می‌شود؛ سپس سرور اجرا نمی‌شود:
 
 </div>
 
 <div dir="ltr" align="left">
 
-```sh
-sh tools/mkuser.sh testuser 'test-password' >> users.db
+```text
+users.db:2:5: error: password hash has 6 characters, expected 64 hex digits (SHA-256)
+    2 | Bob:03ac67;
+      |     ^~~~~~
+users.db:2:1: note: a valid line looks like this (the hash is only an example):
+    2 | Bob:03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4;
+users.db:3:70: error: missing ';' at the end of the line
+    3 | Dave:03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4
+      |                                                                      ^
+users.db:3:1: note: suggested fix for this line:
+    3 | Dave:03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4;
 ```
 
 </div>
 
 <div dir="rtl" align="right">
 
-**توجه:** پایگاه داده کاربران شخصی یا حساس را در مخزن Git قرار ندهید. فایل `users.db` را محلی نگه دارید و فقط از اطلاعات آزمایشی موقت استفاده کنید. فایل `users.db.example` صرفاً نمونه است و نباید برای حساب‌های حساس استفاده شود.
+«suggested fix» نام و هش خود شما را نگه می‌دارد و فقط قالب را درست می‌کند. اگر خود هش خراب باشد، یادداشت یک خط درست با هش «نمونه» نشان می‌دهد.
 
 ## اجرای سرور
-
-از داخل پوشه پروژه، مسیر فایل پایگاه داده کاربران را به‌عنوان تنها آرگومان ضروری برنامه وارد کنید:
 
 </div>
 
@@ -252,55 +170,30 @@ sh tools/mkuser.sh testuser 'test-password' >> users.db
 
 <div dir="rtl" align="right">
 
-سرور به‌طور پیش‌فرض روی پورت TCP شماره `8080` و روی تمام رابط‌های شبکه گوش می‌دهد. برای باز کردن صفحه روی همان دستگاه، نشانی زیر را در مرورگر وارد کنید:
+به‌طور پیش‌فرض سرور روی پورت TCP شماره `8080` و روی همه رابط‌های شبکه گوش می‌دهد. روی همان دستگاه `http://127.0.0.1:8080/` و از دستگاه دیگر در شبکه مورداعتمادتان `http://<SERVER_LAN_IP>:8080/` را باز کنید. برنامه HTTPS ارائه نمی‌دهد.
 
-</div>
+سرور را با `Ctrl+C` متوقف کنید.
 
-<div dir="ltr" align="left">
-
-```text
-http://127.0.0.1:8080/
-```
-
-</div>
-
-<div dir="rtl" align="right">
-
-برای آزمایش از دستگاه دیگری در شبکه محلی مورداعتماد، به‌جای `<SERVER_LAN_IP>` آدرس IP محلی دستگاهی را قرار دهید که سرور روی آن اجرا شده است:
-
-</div>
-
-<div dir="ltr" align="left">
-
-```text
-http://<SERVER_LAN_IP>:8080/
-```
-
-</div>
-
-<div dir="rtl" align="right">
-
-این کار را فقط در شبکه‌ای انجام دهید که دسترسی به آن را کنترل می‌کنید؛ ارتباط برنامه HTTPS نیست.
-
-برای نمایش راهنمای خط فرمان:
+## راهنما
 
 </div>
 
 <div dir="ltr" align="left">
 
 ```sh
-./loginwebpage --help
+./loginwebpage --help     # یا -h : راهنمای کامل (man page) داخل less
+./loginwebpage --version  # یا -V
 ```
 
 </div>
 
 <div dir="rtl" align="right">
 
-برای متوقف کردن سرور، در ترمینال کلیدهای `Ctrl+C` را فشار دهید.
+اگر خروجی استاندارد ترمینال نباشد (مثلاً `./loginwebpage --help | grep port`) راهنما به‌صورت متن ساده چاپ می‌شود.
 
 ## تغییر پورت شنود
 
-پورت پیش‌فرض با ماکروی `SERVER_PORT` در فایل `include/config.h` مشخص شده است. می‌توانید مقدار آن را در فایل تغییر دهید و دوباره کامپایل کنید یا هنگام کامپایل تعریف دیگری به کامپایلر بدهید:
+پورت پیش‌فرض با ماکروی `SERVER_PORT` در `include/config.h` مشخص شده است. آن را تغییر دهید و دوباره کامپایل کنید یا هنگام کامپایل تعریف دیگری بدهید:
 
 </div>
 
@@ -315,19 +208,7 @@ make CPPFLAGS=-DSERVER_PORT=8081
 
 <div dir="rtl" align="right">
 
-پس از آن صفحه در نشانی زیر در دسترس خواهد بود:
-
-</div>
-
-<div dir="ltr" align="left">
-
-```text
-http://127.0.0.1:8081/
-```
-
-</div>
-
-<div dir="rtl" align="right">
+پورت‌های کمتر از ۱۰۰۰ به root نیاز دارند: سرور را با `sudo` اجرا کنید؛ به‌محض باز شدن سوکت‌ها دسترسی root را رها می‌کند.
 
 ## ساختار مخزن
 
@@ -337,12 +218,10 @@ http://127.0.0.1:8081/
 
 ```text
 loginwebpage/
-├── include/          C header files
-├── src/              C source files
-├── tools/mkuser.sh   Helper to create user database records
+├── include/          C header files (one per module)
+├── src/              C source files (one job per file; manpage.c holds the manual)
 ├── users.db.example  Example user database
-├── configure         Build-requirements check
-├── Makefile          Build and installation targets
+├── configure         Requirement check + Makefile generator
 └── LICENSE           License text
 ```
 
@@ -350,12 +229,14 @@ loginwebpage/
 
 <div dir="rtl" align="right">
 
+فایل‌هایی که `./configure` و `make` می‌سازند (با `make distclean` پاک می‌شوند): `Makefile`، `build/` و `loginwebpage`.
+
 ## عیب‌یابی
 
-- **پورت قبلاً در حال استفاده است:** مقدار `SERVER_PORT` را تغییر دهید و پروژه را دوباره کامپایل کنید.
-- **بررسی پیش‌نیازها ناموفق است:** کامپایلر، `make` یا سرآیندهای توسعه‌ای را که `./configure` گزارش می‌کند نصب کنید و بررسی را دوباره اجرا کنید.
-- **فایل کاربران پذیرفته نمی‌شود:** مطمئن شوید هر رکورد غیرخالی قالب `username:64-hex-character-SHA256-hash;` را رعایت می‌کند.
-- **اتصال از دستگاه دیگری برقرار نمی‌شود:** روشن بودن سرور، IP محلی و پورت صحیح و قوانین فایروال را بررسی کنید. سرور به‌طور پیش‌فرض روی همه رابط‌های شبکه گوش می‌دهد.
+- **پورت قبلاً در حال استفاده است:** مقدار `SERVER_PORT` را تغییر دهید و دوباره کامپایل کنید.
+- **`./configure` ناموفق است:** دستور نصبی را که چاپ می‌کند اجرا کنید و دوباره آن را اجرا کنید.
+- **فایل کاربران پذیرفته نمی‌شود:** پیام‌های `file:line:column` روی `stderr` را بخوانید؛ هر کدام خط معیوب و شکل درست آن را نشان می‌دهد.
+- **اتصال از دستگاه دیگری برقرار نمی‌شود:** روشن بودن سرور، IP محلی و پورت صحیح و قوانین فایروال را بررسی کنید.
 
 ## مجوز
 
@@ -370,3 +251,4 @@ loginwebpage/
 از همراهی شما سپاسگزاریم.
 
 </div>
+

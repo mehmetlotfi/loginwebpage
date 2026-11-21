@@ -27,6 +27,7 @@
 #include "sys/socket.h"
 #include "net/if.h"
 #include "ifaddrs.h"
+#include "netinet/in.h"
 
 #include "errno.h"
 #include "stdio.h"
@@ -34,7 +35,7 @@
 #include "string.h"
 #include "unistd.h"
 
-int netif_open_listeners (listener_set_t * set , uint16_t port)
+static int open_per_interface (listener_set_t * set , uint16_t port)
 {
 	struct ifaddrs * ifap , *ifa;
 	bind_addr_t * seen = NULL;
@@ -100,6 +101,58 @@ int netif_open_listeners (listener_set_t * set , uint16_t port)
 	freeifaddrs (ifap);
 	free (seen);
 	return (int) set -> count;
+}
+
+static int open_wildcards (listener_set_t * set , uint16_t port)
+{
+	struct sockaddr_in a4;
+	struct sockaddr_in6 a6;
+	bind_addr_t addrs [2];
+	const char * labels [2] = { "0.0.0.0" , "::" };
+	char text [80];
+	memset (&a4 , 0 , sizeof a4);
+	a4.sin_family = AF_INET;
+	a4.sin_addr.s_addr = htonl (INADDR_ANY);
+	a4.sin_port = htons (port);
+	memset (&a6 , 0 , sizeof a6);
+	a6.sin6_family = AF_INET6;
+	a6.sin6_addr = in6addr_any;
+	a6.sin6_port = htons (port);
+	memset (addrs , 0 , sizeof addrs);
+	memcpy (&addrs [0].ss , &a4 , sizeof a4);
+	addrs [0].len = sizeof a4;
+	memcpy (&addrs [1].ss , &a6 , sizeof a6);
+	addrs [1].len = sizeof a6;
+	set -> items = calloc (2 , sizeof *set -> items);
+	set -> count = 0;
+	if (!set -> items)
+		return -1;
+	for (int i = 0; i < 2; i++)
+	{
+		int err = 0;
+		int fd = listener_open (&addrs [i] , &err);
+		if (fd < 0)
+		{
+			set -> last_errno = err;
+			continue;
+		}
+		snprintf (text , sizeof text , i ? "[%s]:%u" : "%s:%u" , labels [i] , (unsigned) port);
+		set -> items [set -> count].fd = fd;
+		snprintf (set -> items [set -> count].ifname , sizeof set -> items [0].ifname , "any");
+		snprintf (set -> items [set -> count].label , sizeof set -> items [0].label , "%s" , text);
+		set -> count++;
+	}
+	return (int) set -> count;
+}
+
+int netif_open_listeners (listener_set_t * set , uint16_t port)
+{
+	int n = open_per_interface (set , port);
+	if (n > 0 || set -> last_errno == EACCES || set -> last_errno == EADDRINUSE)
+		return n;
+	netif_close_listeners (set);
+	log_warn ("could not enumerate interfaces - listening on any address instead");
+	return open_wildcards (set , port);
 }
 
 void netif_close_listeners (listener_set_t * set)

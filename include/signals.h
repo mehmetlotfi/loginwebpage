@@ -19,8 +19,14 @@
 #ifndef SIGNALS_H
 #define SIGNALS_H
 
-void signals_install (void);
+int signals_install (void);
 
 int signals_stop_requested (void);
+
+int signals_received (void);
+
+int signals_wake_fd (void);
+
+void signals_cleanup (void);
 
 #endif

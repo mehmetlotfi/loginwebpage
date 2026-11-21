@@ -9,14 +9,14 @@
 
 ## Features
 
-- Login page and success/error responses.
-- User records loaded from a local text file.
-- Password verification using SHA-256 hashes.
-- Multithreaded connection handling.
-- HTTP request parsing and input validation.
-- Configurable listening port at compile time (default: `8080`).
-- `configure` script to check build requirements.
-- `Makefile` targets for building, installing, uninstalling, and cleaning.
+- Bilingual (Persian/English) login, success and error pages with light and dark themes.
+- User records loaded from a local text file; passwords verified with SHA-256 hashes.
+- Multithreaded: a pool of worker threads fed by a bounded queue (excess load gets `503`, never a stall).
+- Safe shutdown on `Ctrl+C` / `SIGTERM`: stops accepting, lets running requests finish (2 s grace), closes every socket, joins all threads and frees all memory. A second `Ctrl+C` exits at once.
+- A broken users file is reported on `stderr` in the style of `gcc` (file:line:column, the faulty line, a `^~~~` marker, and a corrected example line).
+- `--add-user` / `--remove-user` manage the users file; no helper scripts needed.
+- `--help` shows a full manual page (standard `man` layout) in `less`.
+- `./configure` checks the build requirements, tells you how to install what is missing, and writes the `Makefile`.
 
 ## Intended use
 
@@ -27,164 +27,132 @@ This project is suitable for testing login forms, authentication flows, browser 
 ## Requirements
 
 - A C compiler such as GCC or Clang.
-- `make` (GNU make or a compatible BSD make).
-- POSIX-compatible system headers and threading support.
-- A POSIX shell for the `configure` and user-creation scripts.
+- `make` (GNU make or a BSD make), `sed`, and a POSIX shell for `./configure`.
+- POSIX system headers and threading support.
+- Optional: `less`, for the paged `--help`.
 
-The project is designed for Linux and BSD-family systems. On Debian/Ubuntu, install the usual build tools with:
+Supported systems: Linux, FreeBSD, OpenBSD, NetBSD, DragonFly BSD and Termux (Android). `./configure` prints the exact install command for your package manager when something is missing, for example:
 
 ```sh
-sudo apt update
-sudo apt install build-essential
+sudo apt install build-essential        # Debian/Ubuntu
+sudo dnf install gcc make glibc-devel   # Fedora
+sudo pacman -S --needed base-devel      # Arch
+pkg install clang make                  # Termux
 ```
+## Clone Repository
 
-On Fedora:
-
-```sh
-sudo dnf install gcc make glibc-devel
-```
-
-On Arch Linux:
-
-```sh
-sudo pacman -S --needed base-devel
-```
-
-## Download
-
-```sh
+```bash
 git clone https://github.com/mehmetlotfi/loginwebpage.git
-cd loginwebpage
+
+cd loginwebpage/
 ```
 
-## Check requirements and compile
-
-Run the configuration check:
+## Build
 
 ```sh
 ./configure
-```
-
-If the check succeeds, build the executable:
-
-```sh
 make
 ```
 
-The resulting executable is named `loginwebpage`. Build object files are placed in `build/`.
+`./configure` writes the `Makefile` **only if every check passes**; if something is missing it explains how to install it and writes nothing. The text of the Makefile lives inside the `configure` script (there is no `Makefile.in`).
 
-To remove the executable and generated object files:
+- Object files go to the `build/` directory, never into `src/` or `include/`.
+- After you change a file, `make` recompiles only what depends on it.
+- `make clean` deletes `build/` and the `loginwebpage` binary; `make distclean` also deletes the `Makefile`.
+- If you add a `.c` file or an `#include` line, run `./configure` again so the dependency rules are regenerated.
+- `sudo make install` installs the program and its manual page under `/usr/local` (change with `./configure --prefix=/usr`); `sudo make uninstall` removes them.
 
-```sh
-make clean
-```
+## Manage users
 
-To install the executable under `/usr/local/bin`:
-
-```sh
-sudo make install
-```
-
-To uninstall it:
-
-```sh
-sudo make uninstall
-```
-
-The install prefix can be changed, for example:
-
-```sh
-sudo make install PREFIX=/usr
-```
-
-## Create a test user database
-
-The server expects a users file in this format, with one entry per line:
+The users file has one entry per line:
 
 ```text
 username:sha256-hex-of-password;
 ```
 
-Each password hash must be exactly 64 hexadecimal characters. An example file is provided as `users.db.example`. Copy it to a separate working file:
+Create and edit it with the program itself (the password is asked twice and not shown):
 
 ```sh
-cp users.db.example users.db
+./loginwebpage --add-user Ali users.db      # short form: -a Ali users.db
+./loginwebpage --remove-user Ali users.db   # short form: -r Ali users.db
 ```
 
-To add a test user, use the helper script. It prompts for the password without displaying it:
+The file is created if it does not exist (mode `0600`). The commands refuse to touch a file that contains errors. For scripts, the password is read from standard input when it is not a terminal:
 
 ```sh
-sh tools/mkuser.sh testuser >> users.db
+printf '%s\n' 'test-password' | ./loginwebpage -a testuser users.db
 ```
 
-You can also append a record while passing the password as a command-line argument, but this is discouraged because the password may be exposed through shell history or process listings:
+Restart the server after changing the file. An example file is provided as `users.db.example` (user `Ali`, password `1234`).
 
-```sh
-sh tools/mkuser.sh testuser 'test-password' >> users.db
+### Errors in the users file
+
+When the server starts it checks the whole file and reports every problem, then refuses to start:
+
+```text
+users.db:2:5: error: password hash has 6 characters, expected 64 hex digits (SHA-256)
+    2 | Bob:03ac67;
+      |     ^~~~~~
+users.db:2:1: note: a valid line looks like this (the hash is only an example):
+    2 | Bob:03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4;
+users.db:3:70: error: missing ';' at the end of the line
+    3 | Dave:03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4
+      |                                                                      ^
+users.db:3:1: note: suggested fix for this line:
+    3 | Dave:03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4;
 ```
 
-Do not commit a personal or sensitive user database to the repository. Keep `users.db` local and use only disposable test credentials. The supplied `users.db.example` is an example file, not a recommendation to use its accounts for anything sensitive.
+A *suggested fix* keeps your own name and hash and repairs only the format; when the hash itself is damaged, the note shows a valid line with an *example* hash.
 
 ## Run the server
-
-From the project directory, pass the user database path as the only required argument:
 
 ```sh
 ./loginwebpage users.db
 ```
 
-By default, the server listens on TCP port `8080` on all network interfaces. Open the following address on the same machine:
+By default the server listens on TCP port `8080` on all network interfaces. Open `http://127.0.0.1:8080/` on the same machine, or `http://<SERVER_LAN_IP>:8080/` from another device on your trusted network. The application does not provide HTTPS.
 
-```text
-http://127.0.0.1:8080/
-```
+Stop it with `Ctrl+C`.
 
-To test it from another device on your trusted local network, use the server machine's LAN IP address:
-
-```text
-http://<SERVER_LAN_IP>:8080/
-```
-
-Only do this on a network where you control access. The application does not provide HTTPS.
-
-To display command-line usage:
+## Help
 
 ```sh
-./loginwebpage --help
+./loginwebpage --help      # or -h: the full manual page, opened in less
+./loginwebpage --version  # or -V
 ```
 
-Stop the server with `Ctrl+C`.
+If standard output is not a terminal (for example `./loginwebpage --help | grep port`), the manual is printed as plain text.
 
 ## Change the listening port
 
-The default port is defined by `SERVER_PORT` in `include/config.h`. You can change it there and rebuild, or pass a compiler definition:
+The default port is `SERVER_PORT` in `include/config.h`. Edit it and rebuild, or pass a compiler definition:
 
 ```sh
 make clean
 make CPPFLAGS=-DSERVER_PORT=8081
 ```
 
-Then visit `http://127.0.0.1:8081/`.
+Ports below 1000 need root: run the server with `sudo`; it gives up root rights as soon as the sockets are open.
 
 ## Repository layout
 
 ```text
 loginwebpage/
-├── include/          C header files
-├── src/              C source files
-├── tools/mkuser.sh   Helper to create user database records
+├── include/          C header files (one per module)
+├── src/              C source files (one job per file; manpage.c holds the manual)
 ├── users.db.example  Example user database
-├── configure         Build-requirements check
-├── Makefile          Build and installation targets
+├── configure         Requirement check + Makefile generator
 └── LICENSE           License text
 ```
+
+Generated by `./configure` and `make` (removed by `make distclean`): `Makefile`, `build/`, `loginwebpage`.
 
 ## Troubleshooting
 
 - **The port is already in use:** choose another `SERVER_PORT` and rebuild.
-- **The build check fails:** install the missing compiler, `make`, or C development headers reported by `./configure`, then run it again.
-- **The server rejects the user database:** verify that every non-empty record follows `username:64-hex-character-SHA256-hash;`.
-- **The browser cannot connect from another device:** confirm the server is running, use the correct LAN IP and port, and check firewall rules. Remember that the server binds to all interfaces by default.
+- **`./configure` fails:** run the install command it prints, then run it again.
+- **The server rejects the user database:** read the `file:line:column` messages on `stderr`; each shows the faulty line and how it should look.
+- **The browser cannot connect from another device:** confirm the server is running, use the correct LAN IP and port, and check firewall rules.
 
 ## License
 

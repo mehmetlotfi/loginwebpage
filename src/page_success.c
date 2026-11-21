@@ -23,7 +23,7 @@
 #include "string.h"
 
 static const char OK_A [] =
-"<main class='card ok'>\n";
+"<div class='box'>\n";
 
 static const char OK_B [] =
 "<h1><span class='fa'>ورود شما درست بود</span><span class='en'>Login successful</span></h1>\n"
@@ -31,16 +31,15 @@ static const char OK_B [] =
 
 static const char OK_C [] =
 "</span></p>\n"
-"<a class='btn' href='/'><span class='fa'>بازگشت به صفحه ورود</span><span class='en'>Back to sign in</span></a>\n"
-"</main>\n";
+"<a class='btn' href='/'><span class='fa'>بازگشت به صفحه ورود</span><span class='en'>Back to sign in</span></a>\n";
 
 #define APPEND(sb, lit) sb_append((sb), (lit), sizeof(lit) - 1)
 
 int page_success_render (strbuf_t * sb , const char * username)
 {
 	page_begin (sb , "\xd9\x88\xd8\xb1\xd9\x88\xd8\xaf \xc2\xb7 Sign in");
-	APPEND (sb , OK_A);
 	page_emit_top (sb , PAGE_MARK_CHECK);
+	APPEND (sb , OK_A);
 	APPEND (sb , OK_B);
 	sb_append_html_escaped (sb , username , strlen (username));
 	APPEND (sb , OK_C);

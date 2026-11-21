@@ -21,21 +21,24 @@
 
 #include "stddef.h"
 #include "stdio.h"
+#include "diag.h"
 #include "userdb.h"
-
-#define MAX_REPORTED_ERRORS 50
 
 typedef struct
 {
 	const char * path;
-	FILE * out;
+	diag_t diag;
 	size_t errors;
+	size_t bad_lines;
+	size_t examples;
 } report_t;
 
-void userdb_report (report_t * r , size_t line , const char * fmt , ...)
-__attribute__ ((format (printf , 3 , 4)));
+void report_init (report_t * r , const char * path , FILE * out);
 
-int userdb_parse_line (report_t * r , char * line , size_t len , size_t lineno ,
-user_entry_t * out);
+void report_file_error (report_t * r , const char * fmt , ...)
+__attribute__ ((format (printf , 2 , 3)));
+
+int userdb_parse_line (report_t * r , const char * raw , size_t rawlen ,
+size_t lineno , user_entry_t * out);
 
 #endif

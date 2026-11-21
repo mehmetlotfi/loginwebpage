@@ -68,7 +68,7 @@ void sock_reject_busy (int fd)
 	close (fd);
 }
 
-void sock_lingering_close (int fd)
+void sock_finish (int fd)
 {
 	char sink [1024];
 	size_t drained = 0;
@@ -86,5 +86,4 @@ void sock_lingering_close (int fd)
 		if (drained > 64 * 1024)
 			break;
 	}
-	close (fd);
 }

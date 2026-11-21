@@ -23,6 +23,6 @@ void sock_prepare_client (int fd);
 
 void sock_reject_busy (int fd);
 
-void sock_lingering_close (int fd);
+void sock_finish (int fd);
 
 #endif

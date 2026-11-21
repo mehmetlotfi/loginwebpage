@@ -23,7 +23,7 @@
 #include "stdio.h"
 #include "unistd.h"
 
-int rootcheck_needs_sudo (int port , int argc , char ** argv)
+int rootcheck_needs_sudo (int port , const char * prog , const char * file)
 {
 	if (port >= PRIVILEGED_PORT_LIMIT || geteuid () == 0)
 		return 0;
@@ -32,7 +32,6 @@ int rootcheck_needs_sudo (int port , int argc , char ** argv)
 	"Please run me with sudo:\n"
 	"\n"
 	"    sudo %s %s\n" ,
-	port , PRIVILEGED_PORT_LIMIT , argc > 0 ? argv [0] : APP_NAME ,
-	argc > 1 ? argv [1] : "<users-file>");
+	port , PRIVILEGED_PORT_LIMIT , prog , file);
 	return 1;
 }

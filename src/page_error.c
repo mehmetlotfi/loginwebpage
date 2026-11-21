@@ -21,7 +21,7 @@
 #include "page_common.h"
 
 static const char ERR_A [] =
-"<main class='card'>\n";
+"<div class='box'>\n";
 
 static const char ERR_B [] =
 "<div class='code'>";
@@ -36,8 +36,7 @@ static const char ERR_D [] =
 
 static const char ERR_E [] =
 "</p>\n"
-"<a class='btn' href='/'><span class='fa'>صفحه ورود</span><span class='en'>Sign-in page</span></a>\n"
-"</main>\n";
+"<a class='btn' href='/'><span class='fa'>صفحه ورود</span><span class='en'>Sign-in page</span></a>\n";
 
 #define APPEND(sb, lit) sb_append((sb), (lit), sizeof(lit) - 1)
 
@@ -89,8 +88,8 @@ int page_error_render (strbuf_t * sb , int status)
 	num [2] = (char)('0' + info -> status % 10);
 	num [3] = '\0';
 	page_begin (sb , "Error");
-	APPEND (sb , ERR_A);
 	page_emit_top (sb , PAGE_MARK_KEYHOLE);
+	APPEND (sb , ERR_A);
 	APPEND (sb , ERR_B);
 	sb_append_str (sb , num);
 	APPEND (sb , ERR_C);

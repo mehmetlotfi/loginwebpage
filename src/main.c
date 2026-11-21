@@ -17,41 +17,36 @@
  */
 
 #include "platform.h"
+#include "cli.h"
+#include "cmd_serve.h"
+#include "cmd_user.h"
 #include "config.h"
-#include "log.h"
-#include "rootcheck.h"
-#include "server.h"
-#include "usage.h"
-#include "userdb.h"
+#include "help.h"
 
 #include "stdio.h"
-#include "string.h"
 
 int main (int argc , char ** argv)
 {
+	cli_options_t opt;
 	const char * prog = argc > 0 ? argv [0] : APP_NAME;
-	if (argc == 2 && (strcmp (argv [1] , "-h") == 0 || strcmp (argv [1] , "--help") == 0))
-	{
-		usage_print (stdout , prog);
-		return 0;
-	}
-	if (rootcheck_needs_sudo (SERVER_PORT , argc , argv))
-		return 1;
-	if (argc != 2)
-	{
-		usage_print (stderr , prog);
+	if (cli_parse (argc , argv , &opt) != 0)
 		return 2;
-	}
-	userdb_t db;
-	if (userdb_load (&db , argv [1] , stderr) != 0)
+	switch (opt.mode)
 	{
-		fprintf (stderr , "%s: the users file is not valid - nothing was started.\n" ,
-		prog);
-		return 1;
+		case CLI_HELP:
+			return help_show ();
+		case CLI_DUMP_MAN:
+			help_dump_source ();
+			return 0;
+		case CLI_VERSION:
+			printf ("%s %s\n" , APP_NAME , APP_VERSION);
+			return 0;
+		case CLI_ADD_USER:
+			return cmd_add_user (opt.file , opt.user);
+		case CLI_REMOVE_USER:
+			return cmd_remove_user (opt.file , opt.user);
+		case CLI_SERVE:
+			break;
 	}
-	log_info ("%s %s: loaded %zu user(s) from %s" , APP_NAME , APP_VERSION ,
-	db.count , argv [1]);
-	int rc = server_run (&db , (uint16_t) SERVER_PORT);
-	userdb_free (&db);
-	return rc;
+	return cmd_serve (prog , opt.file);
 }
